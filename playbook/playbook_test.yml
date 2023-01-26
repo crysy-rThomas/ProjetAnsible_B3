@@ -1,4 +1,5 @@
 ---
+# ansible-playbook playbook/playbook_test.yml
 - name: Install and configure Mastodon
   hosts: all
   vars_files:
@@ -105,14 +106,6 @@
           priv=ALL
           state=present
 
-    - name: Ensure user does not have unnecessary permissions
-      become: true
-      become_user: postgres
-      postgresql_user: 
-          name={{ db_user }}
-          role_attr_flags=NOSUPERUSER,NOCREATEDB
-          state=present
-
     - name: "Install packages RUBY"
       apt:
        name: "{{ rubyPackage }}"
@@ -150,4 +143,23 @@
         name: bundler
         state: present
 
+
+    - name: bundle config deployment 'true'
+      ansible.builtin.shell: bundle config deployment 'true'
+      args:
+        chdir: /var/www/mastodon
+
+    - name: bundle config without 'development test'
+      ansible.builtin.shell: bundle config without 'development test'
+      args:
+        chdir: /var/www/mastodon
         
+
+    - name: Change the working directory to somedir/ before executing the command
+      ansible.builtin.shell: bundle install -j$(getconf _NPROCESSORS_ONLN)
+      args:
+        chdir: /var/www/mastodon
+      
+
+
+    
