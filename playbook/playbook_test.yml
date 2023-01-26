@@ -1,0 +1,153 @@
+---
+- name: Install and configure Mastodon
+  hosts: all
+  vars_files:
+    - vars.yml
+  become: yes
+  tasks:
+    - name: Mise à jour du système (apt)
+      apt:
+        update_cache: yes
+        upgrade: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+    # Install required packages
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: present
+      vars:
+        packages:
+          - git
+          - software-properties-common
+          - make
+          - apt-transport-https
+          - redis-server
+          - optipng 
+          - pngquant
+          - jhead
+          - jpegoptim
+          - gifsicle
+          - imagemagick
+          - ffmpeg
+          - libpq-dev
+          - libxml2-dev
+          - libxslt1-dev
+          - file
+          - g++
+          - libprotobuf-dev
+          - protobuf-compiler
+          - pkg-config
+          - gcc
+          - autoconf
+          - bison
+          - build-essential
+          - libssl-dev
+          - libyaml-dev
+          - libreadline6-dev
+          - zlib1g-dev
+          - libncurses5-dev
+          - libffi-dev
+          - libgdbm-dev
+          - libidn11-dev
+          - libicu-dev
+          - libjemalloc-dev
+          - python3-psycopg2
+          - acl
+        
+
+    - name: Curl nodeJS
+      uri:
+        url: 'https://deb.nodesource.com/setup_16.x'
+        method: GET
+
+    - name: nodejs
+      apt:
+        name: nodejs
+        state: present
+
+    - name: "Install packages"
+      apt:
+       name: "{{ postgres }}"
+       state: present
+      vars:
+        postgres:
+        - postgresql
+        - postgresql-contrib
+
+    - name: "Start and enable services"
+      service: "name={{ item }} state=started enabled=yes"
+      with_items:
+        - postgresql
+
+    - name: Create db
+      community.postgresql.postgresql_db:
+        state: present
+        name: "{{ db_name }}"
+      become: yes
+      become_user: postgres
+    
+    - name: "Create db user"
+      postgresql_user:
+        state: present
+        name: "{{ db_user }}"
+        password: "{{ db_password }}"
+      become: yes
+      become_user: postgres
+
+    - name: Ensure user has access to the new database
+      become: true
+      become_user: postgres
+      postgresql_user: 
+          db={{ db_name }}
+          name={{ db_user }}
+          password={{ db_password }}
+          priv=ALL
+          state=present
+
+    - name: Ensure user does not have unnecessary permissions
+      become: true
+      become_user: postgres
+      postgresql_user: 
+          name={{ db_user }}
+          role_attr_flags=NOSUPERUSER,NOCREATEDB
+          state=present
+
+    - name: "Install packages RUBY"
+      apt:
+       name: "{{ rubyPackage }}"
+       state: present
+      vars:
+        rubyPackage:
+        - ruby
+        - ruby-dev
+
+    - name: Adding user mastodon
+      user: 
+        name: mastodon 
+        group: sudo
+        shell: /bin/bash
+        password: ''
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: /var/www/mastodon
+        state: directory
+        mode: '0755'
+
+    - name: Clone Mastodon repository
+      git:
+        repo: https://github.com/tootsuite/mastodon.git
+        dest: /var/www/mastodon
+
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: /var/www/mastodon
+        owner: mastodon
+
+    - name: Install bundler gem
+      gem:
+        name: bundler
+        state: present
+
+        
