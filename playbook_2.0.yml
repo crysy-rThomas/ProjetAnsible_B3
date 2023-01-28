@@ -1,0 +1,413 @@
+---
+ 
+- name: Install and configure Mastodon
+  hosts: all
+  vars:
+    - rbenv_root: /usr/local/rbenv
+    - ruby_version: 1.9.3-p385
+  vars_files:
+    - vars.yml
+  tasks:
+    # On recupere la version 16 de Nodejs
+    - name: Curl nodeJS
+      uri:
+        url: https://deb.nodesource.com/setup_16.x
+        return_content: true
+        validate_certs: true
+
+    #Installation de postgres
+    - name: Download postgresql file
+      ansible.builtin.get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/keyrings/postgresql.asc 
+
+
+    - name: Mise à jour du système (apt)
+      apt:
+        update_cache: yes
+        upgrade: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+      #Install les différents outils besoin pour l'installation
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - curl
+        - wget
+        - acl
+        - apt-transport-https
+        - lsb-release
+        - ca-certificates
+        - imagemagick
+        - ffmpeg
+        - libpq-dev
+        - libxml2-dev
+        - libxslt1-dev
+        - file
+        - git-core
+        - g++
+        - libprotobuf-dev
+        - protobuf-compiler
+        - pkg-config
+        - nodejs
+        - gcc
+        - autoconf
+        - bison
+        - build-essential
+        - libssl-dev
+        - libyaml-dev
+        - libreadline6-dev
+        - zlib1g-dev
+        - libncurses5-dev
+        - libffi-dev 
+        - libgdbm-dev
+        - nginx
+        - redis-server
+        - redis-tools
+        - postgresql
+        - postgresql-contrib
+        - certbot
+        - python3-certbot-nginx
+        - libidn11-dev
+        - libicu-dev
+        - libjemalloc-dev
+        - make
+        - python3-psycopg2
+        - snapd
+
+      #Ajoute l'utilisateur mastodon avec pas de mdp
+    - name: Adding user mastodon
+      user: 
+        name: mastodon 
+        group: sudo
+        shell: /bin/bash
+        password: ''
+#
+#   - name: Clone a repo git directory
+#     ansible.builtin.git:
+#       repo: https://github.com/ansible/ansible-examples.git
+#      dest: /home/mastodon/.rbenv
+#
+#   - name: Makefile dans /home/mastodon/.rbenv/src 
+#     make:
+#     chdir: /home/mastodon/.rbenv/src
+
+
+      #Install l'outils Ruby
+    - name: "Install packages RUBY"
+      apt:
+       name: "{{ rubyPackage }}"
+       state: latest
+      vars:
+        rubyPackage:
+        - ruby
+        - ruby-dev
+
+#    - name: Install bundler gem
+#      gem:
+#        name: bundler
+#        dest: ~/
+#        state: latest
+
+      #Install bundler a l'aide de gem
+    - name: install gem bundler
+      ansible.builtin.shell: gem install bundler
+
+    
+    - name: Create a user mastodon
+      community.postgresql.postgresql_user:
+        state: present
+        name: mastodon
+      become: true
+      become_user: postgres
+
+    - name: Clone Mastodon repository
+      git:
+        repo: https://github.com/tootsuite/mastodon.git
+        dest: ~/live
+      become: true
+      become_user: mastodon
+
+    - name: bundle config deployment 'true'
+      ansible.builtin.shell: bundle config deployment 'true'
+      args:
+        chdir: ~/live
+      become: true
+      become_user: mastodon
+
+    - name: bundle config without 'development test'
+      ansible.builtin.shell: bundle config without 'development test'
+      args:
+        chdir: ~/live
+      become: true
+      become_user: mastodon
+        
+
+    - name: bundle install -j$(getconf _NPROCESSORS_ONLN)
+      ansible.builtin.shell: bundle install -j$(getconf _NPROCESSORS_ONLN)
+      args:
+        chdir: ~/live
+      become: true
+      become_user: mastodon
+
+
+# ANsible modifier le file .env.production
+
+    - name: Create file .env.production
+      ansible.builtin.file:
+        path: ~/live/.env.production
+        state: touch
+      become: true
+      become_user: mastodon
+
+    - name: Add a line LOCAL_DOMAIN=Keyce to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'LOCAL_DOMAIN=Keyce'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line SINGLE_USER_MODE=false to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SINGLE_USER_MODE=false'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line DB_HOST to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_HOST=/var/run/postgresql'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line DB_PORT to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_PORT=5432'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line DB_NAME to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_NAME=mastodon_production'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line DB_USER to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_USER=mastodon'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line DB_PASS to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_PASS='
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line REDIS_HOST to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_HOST=localhost'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line REDIS_PORT to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_PORT=6379'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line REDIS_PASSWORD to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_PASSWORD='
+        create: yes
+      become: true
+      become_user: mastodon
+    
+    - name: Add a line REDIS_PASSWORD to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_PASSWORD='
+        create: yes
+      become: true
+      become_user: mastodon
+
+# https://docs.joinmastodon.org/admin/config/#secrets
+#Manque les clé secret
+# ~/live/config/secrets.yml
+    - name: Add a line SECRET_KEY_BASE to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SECRET_KEY_BASE=871ac0fe521429856c5638fe54d5baa3c3767d693638eb6028a5019e1064c5cc6974a348f2752619727c0f2b805e75efd5833f0>'
+        create: yes
+      become: true
+      become_user: mastodon
+
+
+    - name: Add a line OTP_SECRET to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'OTP_SECRET=2d9635aecaf0942a0d7cdd137cd15cbc327d96bf82667300c25348479d5a10f7f36055886552884d62941a8e0293104f3b9ca60d3593>'
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line VAPID_PRIVATE to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'VAPID_PRIVATE_KEY=Sll2u9MZhR-aQONr3EoPW_hS_7t_JMGQFbwq4tEI3co='
+        create: yes
+      become: true
+      become_user: mastodon
+
+    - name: Add a line VAPID_PRIVATE to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'VAPID_PUBLIC_KEY=BPKcOsouhvxGwwurZl9Vf3JIJrpBGSMYrKuQz1EeYr0-5iTWYqcSNoCWTGghPsXr_M9BT9ys5yilhaaE50fdp8Q='
+        create: yes
+      become: true
+      become_user: mastodon
+
+
+    - name: Config nginx déplace les fichier dans mastodon  
+      copy:
+        src: /home/mastodon/live/dist/nginx.conf 
+        dest: /etc/nginx/sites-available/mastodon
+        remote_src: true
+
+    - name: Creating a symlink
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/mastodon 
+        dest: /etc/nginx/sites-enabled/mastodon
+        state: link
+
+      #server http
+    - name: Add a line server_name Keyce to a file mastodon
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/sites-available/mastodon
+        regexp: '\s\sserver_name\sexample.com;'
+        line: '  server_name Keyce'
+        state: present
+
+      #server https
+    - name: Add a line server_name Keyce to a file mastodon
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/sites-available/mastodon
+        regexp: '\s\sserver_name\sexample.com;'
+        line: '  server_name Keyce'
+        state: present
+        
+
+    - name: Add a line server_name Keyce to a file mastodon
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/sites-available/mastodon
+        insertafter: '(^|)ssl_certificate_key(|$)'
+        firstmatch: yes
+        line: '  ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;'
+        state: present
+
+    - name: Add a line server_name Keyce to a file mastodon
+      ansible.builtin.lineinfile:
+        path: /etc/nginx/sites-available/mastodon
+        insertafter: '(^|)ssl_certificate_key(|$)'
+        firstmatch: yes
+        line: '  ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;'
+        state: present
+
+    - name: restart nginx
+      ansible.builtin.systemd:
+        state: restarted
+        name: nginx
+
+    - name: Install core
+      community.general.snap:
+        name:
+          - core
+
+    - name: Update snap package
+      command: snap refresh core
+
+    - name: Install certbot via snap.
+      snap:
+        name: certbot
+        classic: true
+
+    - name: copy file mastodon streaming to systemd system
+      copy:
+        src: /home/mastodon/live/dist/mastodon-streaming.service
+        dest: /etc/systemd/system/
+        remote_src: true
+
+    - name: copy file mastodon sidekiq to systemd
+      copy:
+        src: /home/mastodon/live/dist/mastodon-sidekiq.service
+        dest: /etc/systemd/system/
+        remote_src: true  
+
+
+    - name: copy file mastodon web service to systemd
+      copy:
+        src: /home/mastodon/live/dist/mastodon-web.service
+        dest: /etc/systemd/system/
+        remote_src: true
+
+
+      #Relan
+    - name: reload systemd
+      command: systemctl daemon-reload
+      # Démarrer les nouveaux services systemd: service web/sidekiq/streaming
+    - name: start mastodon web service
+      ansible.builtin.systemd:
+        state: started
+        name: mastodon-web.service
+
+    - name: start mastodon web service
+      ansible.builtin.systemd:
+        state: started
+        name: mastodon-sidekiq.service
+
+    - name: start mastodon web service
+      ansible.builtin.systemd:
+        state: started
+        name: mastodon-streaming.service
+
+
+        
+
+ 
+
+  
