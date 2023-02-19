@@ -14,6 +14,8 @@
         url: https://deb.nodesource.com/setup_16.x
         return_content: true
         validate_certs: true
+      become: true
+      become_user: root
 
     #Installation de postgres
     - name: Download postgresql file
@@ -120,16 +122,27 @@
       become: true
       become_user: mastodon
 
-#    - name: Install Ruby 3.0.4 with jemalloc
-#      become: yes
-#      environment:
-#        RUBY_CONFIGURE_OPTS: "--with-jemalloc"
-#      shell: "~/.rbenv/bin/rbenv install 3.0.4"
-#      become_user: mastodon
+    - name: Install Ruby 3.0.4 with jemalloc
+      become: yes
+      environment:
+        RUBY_CONFIGURE_OPTS: "--with-jemalloc"
+      shell: "~/.rbenv/bin/rbenv install 3.0.4"
+      become_user: mastodon
+
+    - name: Set global Ruby version to 3.0.4
+      command: rbenv global 3.0.4
+      args:
+        chdir: "~/.rbenv"
+      become: true
+      become_user: mastodon
 
     - name: Install Bundler gem
       shell: "gem install bundler --no-document"
-
+      become: true
+      become_user: mastodon
+      args:
+        chdir: "~/.rbenv"
+      
 
     - name: Create a user mastodon
       community.postgresql.postgresql_user:
@@ -140,12 +153,12 @@
 
     - name: Clone Mastodon repository
       git:
-        repo: https://github.com/tootsuite/mastodon.git
-        dest: ~/live
+       repo: https://github.com/tootsuite/mastodon.git
+       dest: ~/live
       become: true
       become_user: mastodon
 
-
+# changer la version pour 3.0.4 dans live/ruby-version
     - name: bundle config deployment 'true'
       ansible.builtin.shell: bundle config deployment 'true'
       args:
@@ -182,7 +195,7 @@
       ansible.builtin.lineinfile:
         path: ~/live/.env.production
         regexp: '^\s*$'
-        line: 'LOCAL_DOMAIN= "{{ip_machine}}"'
+        line: 'LOCAL_DOMAIN= "10.42.42.6"'
         create: yes
       become: true
       become_user: mastodon
@@ -344,11 +357,16 @@
       ansible.builtin.lineinfile:
         path: ~/live/.env.production
         regexp: '^\s*$'
-        line: 'SMTP_FROM_ADDRESS='Mastodon <notifications@keyce>''
+        line: 'SMTP_FROM_ADDRESS=Mastodon <notifications@keyce>'
         create: yes
       become: true
       become_user: mastodon
 
+    - name: Exécuter la commande RAILS_ENV=production rails db:setup
+      command: RAILS_ENV=production rails db:setup
+
+    - name: Exécuter la commande RAILS_ENV=production rails assets:precompile
+      command: RAILS_ENV=production rails assets:precompile
 
     - name: Config nginx déplace les fichier dans mastodon  
       copy:
