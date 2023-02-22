@@ -1,0 +1,188 @@
+---
+ 
+- name: Install and configure Mastodon
+  hosts: server
+  become: true
+  become_user: mastodon
+  tasks:
+
+    - name: Create file .env.production
+      ansible.builtin.file:
+        path: ~/live/.env.production
+        state: touch
+
+    - name: Add a line LOCAL_DOMAIN=Keyce to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'LOCAL_DOMAIN=10.42.42.3'
+        create: yes
+
+    - name: Add a line SINGLE_USER_MODE=false to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SINGLE_USER_MODE=false'
+        create: yes
+
+    - name: Add a line DB_HOST to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_HOST=/var/run/postgresql'
+        create: yes
+
+    - name: Add a line DB_PORT to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_PORT=5432'
+        create: yes
+
+    - name: Add a line DB_NAME to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_NAME=mastodon_production'
+        create: yes
+
+    - name: Add a line DB_USER to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_USER=mastodon'
+        create: yes
+
+    - name: Add a line DB_PASS to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'DB_PASS='
+        create: yes
+
+    - name: Add a line REDIS_HOST to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_HOST=localhost'
+        create: yes
+
+    - name: Add a line REDIS_PORT to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_PORT=6379'
+        create: yes
+
+
+    - name: Add a line REDIS_PASSWORD to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'REDIS_PASSWORD='
+        create: yes
+
+
+    - name: Add a line SMTP_SERVE to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_SERVER=smtp.gmail.com'
+        create: yes
+
+    - name: Add a line SMTP_PORT to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_PORT=587'
+        create: yes
+
+    - name: Add a line SMTP_LOGIN to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_LOGIN=energiznerzs@gmail.com'
+        create: yes
+
+    - name: Add a line SMTP_PASSWORD to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_PASSWORD=tubtdaukehcpeokc'
+        create: yes
+
+
+    - name: Add a line SMTP_AUTH to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_AUTH_METHOD=plain'
+        create: yes
+
+
+    - name: Add a line SMTP_OPENSSL to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_OPENSSL_VERIFY_MODE=none'
+        create: yes
+
+
+    - name: Add a line SMTP_ENABLE to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_ENABLE_STARTTLS=auto'
+        create: yes
+
+
+    - name: Add a line SMTP_ENABLE to a file .env.production
+      ansible.builtin.lineinfile:
+        path: ~/live/.env.production
+        regexp: '^\s*$'
+        line: 'SMTP_FROM_ADDRESS=Mastodon <notifications@10.42.42.3>'
+        create: yes
+
+
+    - name: Generate Mastodon's VAPID private key
+      environment:
+        PATH: "/home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+      command: sh -c 'rbenv local 3.0.4 && VAPID_PRIVATE_KEY=$(openssl rand -base64 32) && echo "VAPID_PRIVATE_KEY=$VAPID_PRIVATE_KEY" >> .env.production'
+      args:
+        chdir: ~/live
+
+    - name: Generate Mastodon's VAPID public key
+      environment:
+        PATH: "/home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+      command: sh -c 'rbenv local 3.0.4 && VAPID_PRIVATE_KEY=$(grep "^VAPID_PRIVATE_KEY=" .env.production | cut -d= -f2) && VAPID_PUBLIC_KEY=$(echo "$VAPID_PRIVATE_KEY" | openssl ec -inform DER -pubout -outform DER | tail -c 65 | base64) && echo "VAPID_PUBLIC_KEY=$VAPID_PUBLIC_KEY" >> .env.production'
+      args:
+        chdir: ~/live
+
+    - name: Generate Mastodon's SECRET_KEY_BASE
+      environment:
+        PATH: "/home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+      command: sh -c 'rbenv local 3.0.4 && SECRET_KEY_BASE=$(openssl rand -hex 64) && grep -qxF "SECRET_KEY_BASE=$SECRET_KEY_BASE" .env.production || echo "SECRET_KEY_BASE=$SECRET_KEY_BASE" >> .env.production'
+      args:
+        chdir: ~/live
+
+
+    - name: Generate Mastodon's OTP_SECRET
+      environment:
+        PATH: "/home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+      command: sh -c 'rbenv local 3.0.4 && OTP_SECRET=$(openssl rand -hex 32) && grep -qxF "OTP_SECRET=$OTP_SECRET" .env.production || echo "OTP_SECRET=$OTP_SECRET" >> .env.production'
+      args:
+        chdir: ~/live
+
+    - name: Precompile Rails assets in production environment
+      environment:
+        PATH: "/home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+      command: sh -c 'rbenv local 3.0.4 && RAILS_ENV=production bundle exec rake assets:precompile'
+      args:
+        chdir: ~/live
+
+    - name: Initialize the database
+      environment:
+        PATH: "/home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games"
+      command: sh -c 'rbenv local 3.0.4 && RAILS_ENV=production bundle exec rake db:migrate'
+      args:
+        chdir: ~/live
