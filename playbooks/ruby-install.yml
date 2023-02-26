@@ -1,7 +1,7 @@
 ---
  
 - name: Install and configure Ruby
-  hosts: server
+  hosts: all
   become: true
   gather_facts: true # https://github.com/zzet/ansible-rbenv-role/issues/37
   vars:
