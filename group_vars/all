@@ -1,0 +1,4 @@
+projet_name: Ansible_Mastodon
+projet_url: mastodon.projet
+dns_server : 10.42.42.3
+path_rbenv : /home/mastodon/.rbenv/shims:/home/mastodon/.rbenv/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
