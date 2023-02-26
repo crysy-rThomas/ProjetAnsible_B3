@@ -1,7 +1,7 @@
 ---
  
 - name: Install dependency for mastodon project
-  hosts: server
+  hosts: all
   tasks:
 
       #Install les différents outils besoin pour l'installation
