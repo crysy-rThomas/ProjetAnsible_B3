@@ -1,7 +1,7 @@
 ---
 
 - name: Create usr mastodon
-  hosts: server
+  hosts: all
   tasks:
       #Ajoute l'utilisateur mastodon avec pas de mdp
     - name: Adding user mastodon
