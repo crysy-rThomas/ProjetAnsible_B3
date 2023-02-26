@@ -1,6 +1,6 @@
 <h1>ProjectAnsible_B3</h1>
 
-<p>This project uses Ansible to automate the installation of Mastodon and configuration of the <code>zzet.rbenv</code> role on a target machine running Debian 10 or Debian 11. To use this project, you need to follow the steps outlined below:</p>
+<p>This project uses Ansible to automate the installation of Mastodon on a target machine running Debian 10 or Debian 11. To use this project, you need to follow the steps outlined below:</p>
 
 <h2>Prerequisites</h2>
 
