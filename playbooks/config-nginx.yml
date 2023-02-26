@@ -1,7 +1,7 @@
 ---
  
 - name: Config Nginx
-  hosts: server
+  hosts: all
   tasks:
 
     - name: Config nginx déplace les fichier dans mastodon  
