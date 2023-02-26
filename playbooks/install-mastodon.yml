@@ -1,0 +1,62 @@
+---
+ 
+- name: Install and configure Mastodon
+  hosts: server
+  become: true
+  become_user: mastodon
+  tasks:
+
+    - name: Create database
+      become: yes
+      become_user: postgres
+      postgresql_db:
+        name: mastodon
+        encoding: UTF-8
+        lc_collate: en_US.UTF-8
+        lc_ctype: en_US.UTF-8
+
+    - name: Create database user
+      become: yes
+      become_user: postgres
+      postgresql_user:
+        name: mastodon
+        db: mastodon_production
+
+    - name: Assign privileges
+      become: yes
+      become_user: postgres
+      postgresql_privs:
+        db: mastodon_production
+        role: mastodon
+        type: database
+        privs: ALL
+
+    - name: Clone Mastodon repository
+      git:
+        repo: https://github.com/tootsuite/mastodon.git
+        dest: ~/live
+      ignore_errors: true
+
+
+    - name: bundle config deployment 'true'
+      environment:
+        PATH: "{{path_rbenv}}"
+      command: sh -c 'rbenv local 3.0.4 && bundle config deployment "true"'
+      args:
+        chdir: ~/live
+
+
+    - name: bundle config without "development test"
+      environment:
+        PATH: "{{path_rbenv}}"
+      command: sh -c 'rbenv local 3.0.4 && bundle config without "development test"'
+      args:
+        chdir: ~/live
+
+    - name: bundle install -j$(getconf _NPROCESSORS_ONLN)
+      environment:
+        PATH: "{{path_rbenv}}"
+      command: sh -c 'rbenv local 3.0.4 && bundle install -j$(getconf _NPROCESSORS_ONLN)'
+      args:
+        chdir: ~/live
+

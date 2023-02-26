@@ -1,0 +1,92 @@
+---
+ 
+- name: Install dependency for mastodon project
+  hosts: server
+  tasks:
+
+      #Install les différents outils besoin pour l'installation
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - curl
+        - wget
+        - gnupg
+        - apt-transport-https
+        - lsb-release
+        - ca-certificates
+        - acl
+        - snapd
+
+
+    - name: Installation NodeJS oskur
+      shell: curl -sL https://deb.nodesource.com/setup_16.x | bash -
+
+    #Installation de postgres
+    - name: Download postgresql file
+      ansible.builtin.get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/keyrings/postgresql.asc
+
+    - name: Add PostgreSQL repository to APT sources
+      become: true
+      command: echo "deb [signed-by=/usr/share/keyrings/postgresql.asc] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/postgresql.list
+
+
+    - name: Mise à jour du système (apt)
+      apt:
+        update_cache: yes
+        upgrade: yes
+      when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+      #Install les différents outils besoin pour l'installation
+    - name: Install required packages
+      apt:
+        name: "{{ packages }}"
+        state: latest
+      vars:
+        packages:
+        - nodejs
+        - imagemagick
+        - ffmpeg
+        - libpq-dev
+        - libxml2-dev
+        - libxslt1-dev
+        - file
+        - git-core
+        - g++
+        - libprotobuf-dev
+        - protobuf-compiler
+        - pkg-config
+        - gcc
+        - autoconf
+        - bison
+        - build-essential
+        - libssl-dev
+        - libyaml-dev
+        - libreadline6-dev
+        - zlib1g-dev
+        - libncurses5-dev
+        - libffi-dev 
+        - libgdbm-dev
+        - nginx
+        - redis-server
+        - redis-tools
+        - postgresql
+        - postgresql-contrib
+        - certbot
+        - python3-certbot-nginx
+        - libidn11-dev
+        - libicu-dev
+        - libjemalloc-dev
+        - python3-psycopg2
+
+    - name: corepack enabled
+      shell: corepack enable
+      become: true
+
+    - name: yarn set version classic
+      shell: yarn set version classic
+      become: true

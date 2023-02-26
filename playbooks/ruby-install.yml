@@ -1,0 +1,28 @@
+---
+ 
+- name: Install and configure Ruby
+  hosts: server
+  become: true
+  gather_facts: true # https://github.com/zzet/ansible-rbenv-role/issues/37
+  vars:
+    rbenv:
+      env: user
+      version: v1.2.0
+      default_ruby: 3.0.4
+      rubies:
+      - version: 3.0.4
+        env:
+          RUBY_CONFIGURE_OPTS: "--enable-shared --with-jemalloc"
+    rbenv_extra_depends:
+      - libjemalloc-dev
+  roles:
+    - role: zzet.rbenv
+      rbenv_users:
+        - mastodon
+  tasks:
+
+    - name: gem install bundler
+      environment:
+        PATH: "{{path_rbenv}}"
+      command: rbenv exec gem install bundler
+      become_user: mastodon
