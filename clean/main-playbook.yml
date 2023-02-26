@@ -1,8 +1,0 @@
----
-
-- import_playbook: install-dep.yml
-- import_playbook: usr-mastodon.yml
-- import_playbook: ruby-install.yml
-- import_playbook: install-mastodon.yml
-- import_playbook: setup-mastodon.yml
-- import_playbook: config-nginx.yml   
