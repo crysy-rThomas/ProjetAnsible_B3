@@ -1,7 +1,7 @@
 ---
  
 - name: Config Nginx
-  hosts: all
+  hosts: server
   tasks:
 
     - name: Config nginx déplace les fichier dans mastodon  
@@ -15,6 +15,19 @@
         src: /etc/nginx/sites-available/mastodon 
         dest: /etc/nginx/sites-enabled/mastodon
         state: link
+
+
+    - name:  send key and certificate
+      copy:
+        src: ../{{ item }}
+        dest: /etc/ssl/{{ item }}
+        mode: 0400
+      with_items:
+      - "mastodon.com.key"
+      - "mastodon.com.pem"
+      become: true
+
+
 
       #server http
     - name: Add a line server_name Keyce to a file mastodon
@@ -38,7 +51,7 @@
         path: /etc/nginx/sites-available/mastodon
         insertafter: '(^|)ssl_certificate_key(|$)'
         firstmatch: yes
-        line: '  ssl_certificate_key /etc/ssl/private/ssl-cert-snakeoil.key;'
+        line: '  ssl_certificate /etc/ssl/{{ dns_server }}.pem;'
         state: present
 
     - name: Add a line server_name Keyce to a file mastodon
@@ -46,7 +59,7 @@
         path: /etc/nginx/sites-available/mastodon
         insertafter: '(^|)ssl_certificate_key(|$)'
         firstmatch: yes
-        line: '  ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem;'
+        line: '  ssl_certificate_key /etc/ssl/{{ dns_server }}.key;'
         state: present
 
     - name: restart nginx
