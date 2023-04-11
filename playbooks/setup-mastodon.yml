@@ -108,7 +108,7 @@
       ansible.builtin.lineinfile:
         path: ~/live/.env.production
         regexp: '^\s*$'
-        line: 'SMTP_PASSWORD=tubtdaukehcpeokc'
+        line: 'SMTP_PASSWORD=password'
         create: yes
 
 
